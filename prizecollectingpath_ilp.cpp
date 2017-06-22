@@ -1,0 +1,165 @@
+/*******************************************************
+ * MC658 - Projeto e Analise de Algoritmo III - 1s2017
+ * Prof: Flavio Keidi Miyazawa
+ * PED: Edson Ticona Zegarra
+ ******************************************************/
+#include "prizecollectingpath.h"
+#include <typeinfo>
+
+///Preencher aqui para facilitar a correcao.
+// Nome1: André Nogueira Brandão
+// RA1: 116130
+// Nome2:
+// RA2:
+
+///
+// PLI function
+///
+int prize_collecting_st_path_pli(ListDigraph& g, ListDigraph::NodeMap<double>& prize, ListDigraph::ArcMap<double>& cost, ListDigraph::Node s, ListDigraph::Node t, std::vector<ListDigraph::Node> &path, double &LB, double &UB, int tMax){
+  GRBEnv env = GRBEnv();
+  GRBModel model = GRBModel(env);
+  GRBLinExpr expr;
+  model.set(GRB_IntAttr_ModelSense, GRB_MAXIMIZE);
+  model.set(GRB_DoubleParam_TimeLimit, tMax);
+  ListDigraph::ArcMap<GRBVar> x(g); // variavel x indica se a aresta esta ou nao na solucao
+  ListDigraph::Node last_node, new_node; // nos utilizados para calcular o path
+  double prize_value; // guarda o valor do premio
+  double opt = 0.0; // utilizado para calcular o otimo
+
+  // Adiciona uma variavel x para cada aresta
+  // Nao utiliza os valores dos premios de s e de t
+  for (ArcIt e(g); e!=INVALID; ++e) {
+    prize_value = prize[g.source(e)];
+    if(g.source(e) == s) {
+      prize_value = 0.0;
+    }
+    x[e] = model.addVar(0.0, 1.0, prize_value - 1.0 * cost[e],GRB_BINARY,"");
+  }
+  model.update();
+
+  // para cada no diferente de s e t
+  // verifique que o numero que entra eh igual ao que sai
+  for ( DNodeIt v(g); v!=INVALID; ++v ) {
+    if(v != s && v != t) {
+      GRBLinExpr in_edges = 0;
+      GRBLinExpr out_edges = 0;
+
+      for ( InArcIt e(g, v); e!=INVALID; ++e ){
+          in_edges += x[e];
+      }
+       for ( OutArcIt e(g, v); e!=INVALID; ++e ){
+          out_edges += x[e];
+      }
+      model.addConstr(in_edges - out_edges == 0);
+    }
+  }
+
+  // Para o vertice s: nenhuma aresta incide no no e exatamente uma aresta sai do no
+  GRBLinExpr in_edges = 0;
+  GRBLinExpr out_edges = 0;
+  for ( InArcIt e(g, s); e!=INVALID; ++e ){
+    in_edges += x[e];
+  }
+  for ( OutArcIt e(g, s); e!=INVALID; ++e ){
+    out_edges += x[e];
+  }
+  model.addConstr(in_edges == 0);
+  model.addConstr(out_edges == 1);
+
+  // Para o vertice t: uma aresta incide no no e nenhuma aresta sai dele
+  in_edges = 0;
+  out_edges = 0;
+  for ( InArcIt e(g, t); e!=INVALID; ++e ){
+    in_edges += x[e];
+  }
+  for ( OutArcIt e(g, t); e!=INVALID; ++e ){
+    out_edges += x[e];
+  }
+  model.addConstr(in_edges == 1);
+  model.addConstr(out_edges == 0);
+
+  // for ( DNodeIt v(g); v!=INVALID; ++v ) {
+  //   GRBLinExpr in_edges = 0;
+  //   GRBLinExpr out_edges = 0;
+
+  //   if(v == s) {
+  //     for ( InArcIt e(g, v); e!=INVALID; ++e ){
+  //         in_edges += x[e];
+  //     }
+  //      for ( OutArcIt e(g, v); e!=INVALID; ++e ){
+  //         out_edges += x[e];
+  //     }
+  //     model.addConstr(in_edges == 0);
+  //     model.addConstr(out_edges == 1);
+  //   }
+
+  //   if(v == t){
+  //     for ( InArcIt e(g, v); e!=INVALID; ++e ){
+  //         in_edges += x[e];
+  //     }
+  //      for ( OutArcIt e(g, v); e!=INVALID; ++e ){
+  //         out_edges += x[e];
+  //     }
+  //     model.addConstr(in_edges == 1);
+  //     model.addConstr(out_edges == 0);
+  //   }
+  // }
+
+  // para cada no diferente de s e t
+  // ate uma aresta sai e ate uma aresta entra
+  for ( DNodeIt v(g); v!=INVALID; ++v ) {
+    if(v != s && v != t) {
+      GRBLinExpr in_edges = 0;
+      GRBLinExpr out_edges = 0;
+
+      for ( InArcIt e(g, v); e!=INVALID; ++e ){
+          in_edges += x[e];
+      }
+       for ( OutArcIt e(g, v); e!=INVALID; ++e ){
+          out_edges += x[e];
+      }
+      model.addConstr(in_edges <= 1);
+      model.addConstr(out_edges <= 1);
+    }
+  }
+
+  model.update();
+  try {
+    model.optimize();
+    path.push_back(s);
+    opt += prize[s];
+
+    last_node = s;
+    while(last_node != t) {
+      for ( ArcIt e(g); e!=INVALID; ++e ){
+        if(g.source(e) == last_node) {
+          new_node = g.target(e);
+          if(BinaryIsOne(x[e].get(GRB_DoubleAttr_X))) {
+            opt += prize[new_node];
+            path.push_back(new_node);
+            last_node = new_node;
+          }
+        }
+      }
+    }
+
+    cout << "OPT: " << opt << endl;
+
+  }
+  catch(GRBException e) {
+    std::cerr << "Codigo de erro = " << e.getErrorCode() << std::endl;
+    std::cerr << e.getMessage();
+    return 0;
+  }
+
+  return true;
+}
+
+
+///
+//
+// Heuristic function
+///
+int prize_collecting_st_path_heuristic(ListDigraph& g, ListDigraph::NodeMap<double>& prize, ListDigraph::ArcMap<double> &cost, ListDigraph::Node s, ListDigraph::Node t, std::vector<ListDigraph::Node> &path, double &LB, double &UB, int tMax){
+  return 0;
+}
