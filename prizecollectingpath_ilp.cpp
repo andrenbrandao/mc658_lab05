@@ -78,33 +78,6 @@ int prize_collecting_st_path_pli(ListDigraph& g, ListDigraph::NodeMap<double>& p
   model.addConstr(in_edges == 1);
   model.addConstr(out_edges == 0);
 
-  // for ( DNodeIt v(g); v!=INVALID; ++v ) {
-  //   GRBLinExpr in_edges = 0;
-  //   GRBLinExpr out_edges = 0;
-
-  //   if(v == s) {
-  //     for ( InArcIt e(g, v); e!=INVALID; ++e ){
-  //         in_edges += x[e];
-  //     }
-  //      for ( OutArcIt e(g, v); e!=INVALID; ++e ){
-  //         out_edges += x[e];
-  //     }
-  //     model.addConstr(in_edges == 0);
-  //     model.addConstr(out_edges == 1);
-  //   }
-
-  //   if(v == t){
-  //     for ( InArcIt e(g, v); e!=INVALID; ++e ){
-  //         in_edges += x[e];
-  //     }
-  //      for ( OutArcIt e(g, v); e!=INVALID; ++e ){
-  //         out_edges += x[e];
-  //     }
-  //     model.addConstr(in_edges == 1);
-  //     model.addConstr(out_edges == 0);
-  //   }
-  // }
-
   // para cada no diferente de s e t
   // ate uma aresta sai e ate uma aresta entra
   for ( DNodeIt v(g); v!=INVALID; ++v ) {
@@ -123,12 +96,14 @@ int prize_collecting_st_path_pli(ListDigraph& g, ListDigraph::NodeMap<double>& p
     }
   }
 
-  model.update();
   try {
+    model.update();
     model.optimize();
-    path.push_back(s);
+
     opt += prize[s];
 
+    // cria o caminho de s a t
+    path.push_back(s);
     last_node = s;
     while(last_node != t) {
       for ( ArcIt e(g); e!=INVALID; ++e ){
