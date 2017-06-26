@@ -58,7 +58,7 @@ void Graph::addEdge(int u, int v, double w, double p)
 	}
 }
 
-/**Time Complexity : Set in C++ are typically implemented using Self-balancing binary search trees. 
+/**Time Complexity : Set in C++ are typically implemented using Self-balancing binary search trees.
 Therefore, time complexity of set operations like insert, delete is logarithmic and time complexity of above solution is O(ELogV)).
 */
 int Graph::shortestPath(int s, int t)
@@ -152,17 +152,14 @@ int prize_collecting_st_path_pli(ListDigraph& g, ListDigraph::NodeMap<double>& p
   ListDigraph::ArcMap<GRBVar> x(g); // variavel x indica se a aresta esta ou nao na solucao
   ListDigraph::Node last_node, new_node; // nos utilizados para calcular o path
   double prize_value; // guarda o valor do premio
-  double opt = 0.0; // utilizado para calcular o otimo
 
   // Adiciona uma variavel x para cada aresta
   // Nao utiliza os valores dos premios de s e de t
   for (ArcIt e(g); e!=INVALID; ++e) {
     prize_value = prize[g.source(e)];
-    if(g.source(e) == s) {
-      prize_value = 0.0;
-    }
     x[e] = model.addVar(0.0, 1.0, prize_value - 1.0 * cost[e],GRB_BINARY,"");
   }
+  model.addVar(1.0, 1.0, prize[t],GRB_BINARY,"");
   model.update();
 
   // para cada no diferente de s e t
@@ -228,25 +225,20 @@ int prize_collecting_st_path_pli(ListDigraph& g, ListDigraph::NodeMap<double>& p
     model.update();
     model.optimize();
 
-    opt += prize[s];
-
     // cria o caminho de s a t
     path.push_back(s);
     last_node = s;
     while(last_node != t) {
       for ( ArcIt e(g); e!=INVALID; ++e ){
         if(g.source(e) == last_node) {
-          new_node = g.target(e);
           if(BinaryIsOne(x[e].get(GRB_DoubleAttr_X))) {
-            opt += prize[new_node];
+            new_node = g.target(e);
             path.push_back(new_node);
             last_node = new_node;
           }
         }
       }
     }
-
-    cout << "OPT: " << opt << endl;
 
   }
   catch(GRBException e) {
@@ -264,21 +256,21 @@ int prize_collecting_st_path_pli(ListDigraph& g, ListDigraph::NodeMap<double>& p
 // Heuristic function
 ///
 int prize_collecting_st_path_heuristic(ListDigraph& g, ListDigraph::NodeMap<double>& prize, ListDigraph::ArcMap<double> &cost, ListDigraph::Node s, ListDigraph::Node t, std::vector<ListDigraph::Node> &path, double &LB, double &UB, int tMax){
-  
+
   	int V = 9; //Mudar para o tamanho do grafo
 	Graph graph(V);
-  
-	//for (ArcIt e(g); e!=INVALID; ++e) 
+
+	//for (ArcIt e(g); e!=INVALID; ++e)
 	//{
 		//prize_value = prize[g.source(e)];
-		//if(g.source(e) == s) 
+		//if(g.source(e) == s)
 		//{
 		  //prize_value = 0.0;
 		//}
 		//g.addEdge(g.id(g.source(e)),g.id(g.target(e)),1.0 * cost[e],prize_value);
 	 //}
-	 
+
 	 //int lowerBound = g.shortestPath(g.id(s),g.id(t));
-  
+
 	return 0;
 }
