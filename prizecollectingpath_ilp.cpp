@@ -152,24 +152,30 @@ int prize_collecting_st_path_pli(ListDigraph& g, ListDigraph::NodeMap<double>& p
 int prize_collecting_st_path_heuristic(ListDigraph& g, ListDigraph::NodeMap<double>& prize, ListDigraph::ArcMap<double> &cost, ListDigraph::Node s, ListDigraph::Node t, std::vector<ListDigraph::Node> &path, double &LB, double &UB, int tMax){
     ListDigraph::ArcMap<double> distance(g);
 
+	int minDistance = 0;
+
+	for(ArcIt e(g); e!=INVALID; ++e){
+      if(cost[e] - prize[g.target(e)] < minDistance) minDistance = cost[e] - prize[g.target(e)];
+    }
+
     for(ArcIt e(g); e!=INVALID; ++e){
-      if(g.target(e) != t) distance[e] = cost[e] - prize[g.target(e)];
+      if(g.target(e) != t) distance[e] = cost[e] - prize[g.target(e)] - minDistance;
       else distance[e] = cost[e];
     }
 
     Dijkstra<ListDigraph, ListDigraph::ArcMap<double>> dijkstra(g, distance);
     dijkstra.run(s);
 
-    cout << "The distance of node t from node s: "
-              << -1 * dijkstra.dist(t) << endl;
-
     for (ListDigraph::Node v=t;v != s; v=dijkstra.predNode(v)) {
       path.insert(path.begin(), v);
     }
+    
+    cout << "The distance of node t from node s: "
+              << -1 * dijkstra.dist(t) + minDistance*(path.size()-1) << endl;
 
     path.insert(path.begin(), s);
 
-    return  -1 * dijkstra.dist(t);
+    return  -1 * dijkstra.dist(t)+ minDistance*(path.size()-1);
 
 	// return 0;
 }
