@@ -46,8 +46,9 @@ class ConnectivityCuts: public GRBCallback
           if(v != s && v!= t) {
             GRBLinExpr expr;
             // find a mincut between root s and other terminal
-            // vcut = 1.0;
-            vcut = DiMinCut(g,capacity, s , v, cut);
+            vcut = 1.0;
+            if(getSolution(xv[v]) >= 1.0-MY_EPS)
+              vcut = DiMinCut(g,capacity, s , v, cut);
             if (vcut >= 1.0-MY_EPS) continue;
 
             // found violated cut
