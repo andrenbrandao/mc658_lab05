@@ -80,7 +80,6 @@ int prize_collecting_st_path_pli(ListDigraph& g, ListDigraph::NodeMap<double>& p
   ListDigraph::ArcMap<GRBVar> xa(g); // variavel x indica se a aresta esta ou nao na solucao
   ListDigraph::NodeMap<GRBVar> xv(g); // variavel x indica se a aresta esta ou nao na solucao
   ListDigraph::Node last_node, new_node; // nos utilizados para calcular o path
-  double prize_value; // guarda o valor do premio
   double opt = 0.0;
 
   // Adiciona uma variavel x para cada aresta
@@ -231,40 +230,28 @@ int prize_collecting_st_path_pli(ListDigraph& g, ListDigraph::NodeMap<double>& p
 ///
 int prize_collecting_st_path_heuristic(ListDigraph& g, ListDigraph::NodeMap<double>& prize, ListDigraph::ArcMap<double> &cost, ListDigraph::Node s, ListDigraph::Node t, std::vector<ListDigraph::Node> &path, double &LB, double &UB, int tMax){
   ListDigraph::ArcMap<double> distance(g);
-  double min_dist = 0.0;
-  double opt = 0.0;
-  int n_arcs = 0;
+	int minDistance = 0;
 
-  for(ArcIt e(g); e!=INVALID; ++e){
-    distance[e] = cost[e] - prize[g.target(e)];
-    // else distance[e] = cost[e];
+	for(ArcIt e(g); e!=INVALID; ++e){
+      if(cost[e] - prize[g.target(e)] < minDistance) minDistance = cost[e] - prize[g.target(e)];
+    }
 
-    if(distance[e] < min_dist)
-      min_dist = distance[e];
-  }
-
-  // for(ArcIt e(g); e!=INVALID; ++e){
-  //   if(min_dist < 0)
-  //     distance[e] -= min_dist;
-  // }
+    for(ArcIt e(g); e!=INVALID; ++e){
+      if(g.target(e) != t) distance[e] = cost[e] - prize[g.target(e)] - minDistance;
+      else distance[e] = cost[e];
+    }
 
   Dijkstra<ListDigraph, ListDigraph::ArcMap<double>> dijkstra(g, distance);
   dijkstra.run(s);
 
-  cout << "Dijkstra | Distancia de s a t: "
-            << dijkstra.dist(t) << endl;
-
   for (ListDigraph::Node v=t;v != s; v=dijkstra.predNode(v)) {
-    n_arcs++;
     path.insert(path.begin(), v);
   }
 
+  cout << "The distance of node t from node s: "
+            << -1 * dijkstra.dist(t) + minDistance*(path.size()-1) << endl;
+
   path.insert(path.begin(), s);
 
-  // if(min_dist < 0)
-  //   LB =  dijkstra.dist(t) - n_arcs*min_dist + prize[s];
-  // else
-    LB =  -1 * (dijkstra.dist(t) - prize[s]);
-
-	return 0;
+  return  -1 * dijkstra.dist(t)+ minDistance*(path.size()-1);
 }
