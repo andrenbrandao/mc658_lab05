@@ -15,18 +15,14 @@
 class ConnectivityCuts: public GRBCallback
 {
     ListDigraph& g;
-    ListDigraph::NodeMap<double>& prize;
-    ListDigraph::ArcMap<double> &cost;
     ListDigraph::Node s;
     ListDigraph::Node t;
-    std::vector<ListDigraph::Node> &path;
     ListDigraph::ArcMap<GRBVar>& xa;
     ListDigraph::NodeMap<GRBVar>& xv;
     double (GRBCallback::*solution_value)(GRBVar);
   public:
-    ConnectivityCuts(ListDigraph& g, ListDigraph::NodeMap<double>& prize, ListDigraph::ArcMap<double>& cost, ListDigraph::Node s,
-      ListDigraph::Node t, std::vector<ListDigraph::Node> &path,
-      ListDigraph::ArcMap<GRBVar>& xa,ListDigraph::NodeMap<GRBVar>& xv) : g(g), prize(prize), cost(cost), s(s), t(t), path(path), xa(xa), xv(xv)
+    ConnectivityCuts(ListDigraph& g, ListDigraph::Node s, ListDigraph::Node t,
+      ListDigraph::ArcMap<GRBVar>& xa,ListDigraph::NodeMap<GRBVar>& xv) : g(g), s(s), t(t), xa(xa), xv(xv)
     {    }
   protected:
     void callback()
@@ -163,7 +159,7 @@ int prize_collecting_st_path_pli(ListDigraph& g, ListDigraph::NodeMap<double>& p
     // }
 
     model.set(GRB_IntParam_LazyConstraints, 1);
-    ConnectivityCuts cb = ConnectivityCuts(g, prize, cost, s, t, path, xa, xv);
+    ConnectivityCuts cb = ConnectivityCuts(g, s, t, xa, xv);
     model.setCallback(&cb);
 
     model.update();
