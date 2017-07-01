@@ -82,6 +82,7 @@ int prize_collecting_st_path_pli(ListDigraph& g, ListDigraph::NodeMap<double>& p
   ListDigraph::ArcMap<GRBVar> xa(g); // variavel x indica se a aresta esta ou nao na solucao
   ListDigraph::NodeMap<GRBVar> xv(g); // variavel x indica se a aresta esta ou nao na solucao
   ListDigraph::Node last_node, new_node; // nos utilizados para calcular o path
+  double opt = 0.0;
 
   // Adiciona uma variavel x para cada aresta
   // Nao utiliza os valores dos premios de s e de t
@@ -169,6 +170,9 @@ int prize_collecting_st_path_pli(ListDigraph& g, ListDigraph::NodeMap<double>& p
     model.update();
     model.optimize();
 
+    cout << "LB: " << LB << endl;
+    cout << "OPTIMAL PLI: " << model.get(GRB_DoubleAttr_ObjVal) << endl;
+
     int optimstatus = model.get(GRB_IntAttr_Status);
 
     if (optimstatus == GRB_OPTIMAL) {
@@ -176,6 +180,7 @@ int prize_collecting_st_path_pli(ListDigraph& g, ListDigraph::NodeMap<double>& p
         // cria o caminho de s a t
         path.clear();
         path.push_back(s);
+        opt += prize[s];
         last_node = s;
         while(last_node != t) {
           for ( OutArcIt e(g, last_node); e!=INVALID; ++e ){
@@ -183,11 +188,26 @@ int prize_collecting_st_path_pli(ListDigraph& g, ListDigraph::NodeMap<double>& p
               new_node = g.target(e);
               path.push_back(new_node);
               last_node = new_node;
+              opt += prize[new_node] - cost[e];
             }
           }
         }
+        cout << "SIZE S->T: " << path.size() << endl;
+
+          int count = 0;
+
+          for ( ArcIt e(g); e!=INVALID; ++e ){
+            if(BinaryIsOne(xa[e].get(GRB_DoubleAttr_X))) {
+              cout << g.id(g.source(e)) << " ";
+              count+=1;
+            }
+          }
+          cout << "NUMBER VERTICES: " << count << endl;
+
       }
 
+      // find_other_path(g, prize, cost, s, t, path, LB, UB, tMax, x);
+      cout << "OPT FOUND IN PATH S->T: " << opt << endl;
       return 1;
     }
     else {
@@ -202,7 +222,7 @@ int prize_collecting_st_path_pli(ListDigraph& g, ListDigraph::NodeMap<double>& p
     return 0;
   }
 
-  return 1;
+  return true;
 }
 
 
@@ -222,6 +242,7 @@ std::vector<ListDigraph::Node> greedy_path(ListDigraph& g, ListDigraph::NodeMap<
         found = 1;
       }
     }
+    cout << "ha" << endl;
     if(found == 0 && prize[g.target(e)] > prize_value) {
       prize_value = prize[g.target(e)];
       new_node = g.target(e);
@@ -240,7 +261,9 @@ int prize_collecting_st_path_heuristic(ListDigraph& g, ListDigraph::NodeMap<doub
   ListDigraph::ArcMap<double> distance(g);
   ListDigraph::Arc arc;
   double min_dist = 0.0;
+  double opt = 0.0;
   int n_arcs = 0;
+  double min_arc = 99999999.9;
 
   for(ArcIt e(g); e!=INVALID; ++e){
     if(g.target(e) != t)
@@ -254,6 +277,17 @@ int prize_collecting_st_path_heuristic(ListDigraph& g, ListDigraph::NodeMap<doub
   for(ArcIt e(g); e!=INVALID; ++e){
     if(min_dist < 0)
       distance[e] -= min_dist;
+  }
+
+  for(int i=0;i<200; i++) {
+    min_arc = 99999999.9;
+    for(ArcIt e(g); e!=INVALID; ++e){
+      if(min_arc > distance[e]) {
+        min_arc = distance[e];
+        arc = e;
+      }
+    }
+    distance[arc] = 999999999.9;
   }
 
   Dijkstra<ListDigraph, ListDigraph::ArcMap<double>> dijkstra(g, distance);
