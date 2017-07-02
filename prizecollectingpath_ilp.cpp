@@ -156,11 +156,11 @@ int prize_collecting_st_path_pli(ListDigraph& g, ListDigraph::NodeMap<double>& p
   }
 
   try {
-    // prize_collecting_st_path_heuristic(g, prize, cost, s, t, path, LB, UB, tMax);
-    // if (LB > 0) {
-    //   cout << "Setting cutoff " << LB << endl;
-    //   model.set(GRB_DoubleParam_Cutoff, LB );
-    // }
+    prize_collecting_st_path_heuristic(g, prize, cost, s, t, path, LB, UB, tMax);
+    if (LB > 0) {
+      cout << "Setting cutoff " << LB << endl;
+      model.set(GRB_DoubleParam_Cutoff, LB );
+    }
 
     model.set(GRB_IntParam_LazyConstraints, 1);
     ConnectivityCuts cb = ConnectivityCuts(g, s, t, xa, xv);
@@ -206,32 +206,6 @@ int prize_collecting_st_path_pli(ListDigraph& g, ListDigraph::NodeMap<double>& p
 }
 
 
-std::vector<ListDigraph::Node> greedy_path(ListDigraph& g, ListDigraph::NodeMap<double>& prize, ListDigraph::ArcMap<double> &cost, ListDigraph::Node s, ListDigraph::Node t, std::vector<ListDigraph::Node> path, double &LB, double &UB, int tMax) {
-  ListDigraph::Node last_node, new_node;
-  double prize_value = 0.0;
-
-  if(s == t)
-    return path;
-
-  int found = 0;
-  prize_value = 0.0;
-  for ( OutArcIt e(g, s); e!=INVALID; ++e ){
-    found = 0;
-    for(std::vector<ListDigraph::Node>::iterator it = path.begin(); it != path.end(); ++it) {
-      if(*it != g.target(e)) {
-        found = 1;
-      }
-    }
-    if(found == 0 && prize[g.target(e)] > prize_value) {
-      prize_value = prize[g.target(e)];
-      new_node = g.target(e);
-    }
-  }
-  // cout << g.id(new_node) << endl;
-  path.push_back(new_node);
-  return greedy_path(g, prize, cost, new_node, t, path, LB, UB, tMax);
-}
-
 ///
 //
 // Heuristic function
@@ -259,8 +233,8 @@ int prize_collecting_st_path_heuristic(ListDigraph& g, ListDigraph::NodeMap<doub
   Dijkstra<ListDigraph, ListDigraph::ArcMap<double>> dijkstra(g, distance);
   dijkstra.run(s);
 
-  cout << "Dijkstra | Distancia de s a t: "
-            << dijkstra.dist(t) << endl;
+  // cout << "Dijkstra | Distancia de s a t: "
+  //           << dijkstra.dist(t) << endl;
 
   for (ListDigraph::Node v=t;v != s; v=dijkstra.predNode(v)) {
     n_arcs++;
