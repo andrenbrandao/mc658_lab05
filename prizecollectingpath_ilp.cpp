@@ -70,6 +70,8 @@ class ConnectivityCuts: public GRBCallback
   }
 };
 
+double greedy_opt;
+
 ///
 // PLI function
 ///
@@ -205,15 +207,56 @@ int prize_collecting_st_path_pli(ListDigraph& g, ListDigraph::NodeMap<double>& p
   return 1;
 }
 
+//Greedy Alg
+int greedy_dijkstra(ListDigraph& g, ListDigraph::NodeMap<double>& prize, ListDigraph::ArcMap<double> &cost, ListDigraph::Node s, ListDigraph::Node t, std::vector<ListDigraph::Node> &path, std::vector<ListDigraph::Arc> blacklist){
+    ListDigraph::ArcMap<double> distance(g);
+    int n_arcs = 0;
+	double minDistance = 0.0;
+	std::vector<ListDigraph::Node> path_temp;
 
-///
-//
-// Heuristic function
-///
-int prize_collecting_st_path_heuristic(ListDigraph& g, ListDigraph::NodeMap<double>& prize, ListDigraph::ArcMap<double> &cost, ListDigraph::Node s, ListDigraph::Node t, std::vector<ListDigraph::Node> &path, double &LB, double &UB, int tMax){
+	for(ArcIt e(g); e!=INVALID; ++e){
+      if(cost[e] - prize[g.target(e)] < minDistance) minDistance = cost[e] - prize[g.target(e)];
+    }
+
+    for(ArcIt e(g); e!=INVALID; ++e){
+      if(g.target(e) != t)
+      {
+		  distance[e] = cost[e] - prize[g.target(e)] - minDistance;
+	  }
+      else 
+      {
+		  distance[e] = cost[e];
+	  }
+    }
+    
+    //Gives blacklisted edges an very big weight
+    for(int i = 0; i<blacklist.size(); i++)
+    {
+		distance[blacklist[i]] = 50000000;
+	}
+
+    Dijkstra<ListDigraph, ListDigraph::ArcMap<double>> dijkstra(g, distance);
+    dijkstra.run(s);
+
+    for (ListDigraph::Node v=t;v != s; v=dijkstra.predNode(v)) {
+	  n_arcs++;
+      path_temp.insert(path.begin(), v);
+    }
+    
+    path_temp.insert(path.begin(), s);
+
+    if(minDistance < 0)
+      return  dijkstra.dist(t) - n_arcs*minDistance + prize[s];
+    else
+      return  -1 * (dijkstra.dist(t) - prize[s]);
+
+}
+
+int prize_collecting_st_path_heuristic(ListDigraph& g, ListDigraph::NodeMap<double>& prize, ListDigraph::ArcMap<double> &cost, ListDigraph::Node s, ListDigraph::Node t, std::vector<ListDigraph::Node> &path, double &LB, double &UB, int tMax, std::vector<ListDigraph::Arc> blacklist){
   ListDigraph::ArcMap<double> distance(g);
-  ListDigraph::Arc arc;
+  std::vector<ListDigraph::Node> temp_path;
   double min_dist = 0.0;
+  double opt = 0.0;
   int n_arcs = 0;
 
   for(ArcIt e(g); e!=INVALID; ++e){
@@ -229,25 +272,62 @@ int prize_collecting_st_path_heuristic(ListDigraph& g, ListDigraph::NodeMap<doub
     if(min_dist < 0)
       distance[e] -= min_dist;
   }
+  
+  for(int i = 0; i<blacklist.size(); i++)
+  {
+    distance[blacklist[i]] = 50000000;
+  }
 
   Dijkstra<ListDigraph, ListDigraph::ArcMap<double>> dijkstra(g, distance);
   dijkstra.run(s);
-
-  // cout << "Dijkstra | Distancia de s a t: "
-  //           << dijkstra.dist(t) << endl;
-
-  for (ListDigraph::Node v=t;v != s; v=dijkstra.predNode(v)) {
+ 
+  std::vector<ListDigraph::Arc> arc_list;
+  for (ListDigraph::Node v=t;v == s; v=dijkstra.predNode(v)) {
     n_arcs++;
-    path.insert(path.begin(), v);
-  }
-
-  path.insert(path.begin(), s);
+    path.insert(temp_path.begin(), v);
+    ListDigraph::Arc prev = dijkstra.predArc(v);
+    arc_list.push_back(prev);
+  } 
+  n_arcs--;
 
   if(min_dist < 0)
     LB =  dijkstra.dist(t) - n_arcs*min_dist + prize[s];
   else
     LB =  -1 * (dijkstra.dist(t) - prize[s]);
-
-  return 0;
-
+    
+  //Explores neightboors solutions
+  for(unsigned int i = 0; i < arc_list.size(); i++)
+  {
+	  //Blacklists a path of the current solution and tries to found better neightboors solutions
+	  blacklist.push_back(arc_list[i]);
+	  
+	  int local_opt = greedy_dijkstra(g, prize, cost, s, t, temp_path, blacklist);
+		
+		if(local_opt > LB)
+		{
+			LB = local_opt;
+			//Tries to explore neighboors from best found node
+			double exploring_opt = prize_collecting_st_path_heuristic(g, prize, cost, s, t, temp_path, LB, UB, tMax, blacklist);
+			if(exploring_opt > LB)
+			{
+				LB = exploring_opt;
+				path =  temp_path;
+			}
+		}
+  }
+  
+  return 2;
 }
+
+///
+//
+// Heuristic function
+///
+int prize_collecting_st_path_heuristic(ListDigraph& g, ListDigraph::NodeMap<double>& prize, ListDigraph::ArcMap<double> &cost, ListDigraph::Node s, ListDigraph::Node t, std::vector<ListDigraph::Node> &path, double &LB, double &UB, int tMax){
+  std::vector<ListDigraph::Arc> blacklist;
+  prize_collecting_st_path_heuristic(g, prize, cost, s, t, path, LB, UB, tMax, blacklist);
+  return 2;
+}
+
+
+

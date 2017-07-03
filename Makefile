@@ -39,15 +39,15 @@ else
 	CC_ARGS    = -m64 -O2 -Wall -std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 
 	RELEASE := $(shell uname -r | cut -f 1 -d .)
 	CC_LIB   = -lm -lpthread
-	GUROBI_DIR = /opt/gurobi$(VERSION)/$(PLATFORM)/
+	GUROBI_DIR = /home/felipe/Downloads/gurobi$(VERSION)/$(PLATFORM)/
 endif
 GUROBI_INC = -I$(GUROBI_DIR)/include/
 GUROBI_LIB = -L$(GUROBI_DIR)/lib/  -lgurobi_c++ -lgurobi$(FLAGVERSION)  $(CPPSTDLIB)
 #================= GUROBI =====================================================
 
-#LEMONDIR  = $(shell pwd)/../lemon/lemon-1.3.1
-#LEMONINCDIR  = -I$(LEMONDIR)/include
-#LEMONLIBDIR  = -L$(LEMONDIR)/lib
+LEMONDIR  = /home/felipe/Downloads/lemon-1.3.1
+LEMONINCDIR  = -I$(LEMONDIR)/include
+LEMONLIBDIR  = -L$(LEMONDIR)/lib
 #---------------------------------------------
 # define includes and libraries
 INC = $(GUROBI_INC)  $(LEMONINCDIR)
