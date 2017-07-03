@@ -231,7 +231,7 @@ int greedy_dijkstra(ListDigraph& g, ListDigraph::NodeMap<double>& prize, ListDig
     //Gives blacklisted edges an very big weight
     for(unsigned int i = 0; i<blacklist.size(); i++)
     {
-		distance[blacklist[i]] = 50000000;
+		distance[blacklist[i]] = 5000000;
 	}
 
     Dijkstra<ListDigraph, ListDigraph::ArcMap<double>> dijkstra(g, distance);
@@ -245,11 +245,7 @@ int greedy_dijkstra(ListDigraph& g, ListDigraph::NodeMap<double>& prize, ListDig
     
     path.insert(path.begin(), s);
 
-    if(minDistance < 0)
-      return  dijkstra.dist(t) - n_arcs*minDistance + prize[s];
-    else
-      return  -1 * (dijkstra.dist(t) - prize[s]);
-
+    return  -1 *dijkstra.dist(t) - n_arcs*minDistance + prize[s];
 }
 
 int prize_collecting_st_path_heuristic(ListDigraph& g, ListDigraph::NodeMap<double>& prize, ListDigraph::ArcMap<double> &cost, ListDigraph::Node s, ListDigraph::Node t, std::vector<ListDigraph::Node> &path, double &LB, double &UB, int tMax, std::vector<ListDigraph::Arc> blacklist){
@@ -278,6 +274,7 @@ int prize_collecting_st_path_heuristic(ListDigraph& g, ListDigraph::NodeMap<doub
     distance[blacklist[i]] = 50000000;
   }
 
+
   Dijkstra<ListDigraph, ListDigraph::ArcMap<double>> dijkstra(g, distance);
   dijkstra.run(s);
  
@@ -290,7 +287,7 @@ int prize_collecting_st_path_heuristic(ListDigraph& g, ListDigraph::NodeMap<doub
     arc_list.push_back(prev);
   } 
   path.insert(path.begin(), s);
-  
+    //cout<< n_arcs;
 
   if(min_dist < 0)
     LB =  dijkstra.dist(t) - n_arcs*min_dist + prize[s];
@@ -304,12 +301,13 @@ int prize_collecting_st_path_heuristic(ListDigraph& g, ListDigraph::NodeMap<doub
 	  blacklist.push_back(arc_list[i]);
 	  
 	  int local_opt = greedy_dijkstra(g, prize, cost, s, t, temp_path, blacklist);
-		
+		//cout << local_opt<<endl;
 		if(local_opt > LB)
 		{
 			LB = local_opt;
 			//Tries to explore neighboors from best found node
 			double exploring_opt = prize_collecting_st_path_heuristic(g, prize, cost, s, t, temp_path, LB, UB, tMax, blacklist);
+			cout << exploring_opt<<endl;
 			if(exploring_opt > LB)
 			{
 				LB = exploring_opt;
